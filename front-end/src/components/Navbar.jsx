@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useNavigate } from "react-router-dom";
-import Model from "./Model";
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Model from './Model';
 
-const Navbar = () => {
-
-	axios.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = token;
+const Navbar = ({ theme, toggleTheme }) => {
+  axios.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = token;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
-    return config;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
+  );
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +27,7 @@ const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState('');
 
+  const navigate = useNavigate();
   const login = async (event) => {
   event.preventDefault();
   try {
@@ -72,12 +72,20 @@ const register = async (event) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('https://react-blog-onlk.onrender.com/api/profile')
-       .then(response => {
-          setUser(response.data.username);
-          setIsLoggedIn(true);
+      axios
+        .get('http://localhost:8080/api/profile')
+        .then((response) => {
+          axios
+            .get('https://react-blog-onlk.onrender.com/api/profile')
+            .then((response) => {
+              setUser(response.data.username);
+              setIsLoggedIn(true);
+            })
+            .catch(() => {
+              setIsLoggedIn(false);
+            });
         })
-       .catch(error => {
+        .catch(() => {
           setIsLoggedIn(false);
         });
     } else {
@@ -90,8 +98,6 @@ const register = async (event) => {
     window.location.href = '/';
   };
 
-  const navigate = useNavigate();
-
   const handleProfileClick = () => {
     navigate('/profile');
   };
@@ -101,52 +107,126 @@ const register = async (event) => {
       <nav className="border-b-4 border-green-700 text-center fixed top-0 bg-green-900 font-bold w-full text-lg text-white">
         <ul>
           <li className="inline-block py-4">
-            <Link to="/" className="pl-6 pr-8">Home</Link>
+            <Link to="/" className="pl-6 pr-8">
+              Home
+            </Link>
           </li>
           <li className="inline-block py-4">
-            <Link to="/about" className="pl-6 pr-8">About</Link>
+            <Link to="/about" className="pl-6 pr-8">
+              About
+            </Link>
           </li>
           <li className="inline-block py-4">
-            <Link to="/article-list" className="pl-6 pr-8">Articles</Link>
+            <Link to="/article-list" className="pl-6 pr-8">
+              Articles
+            </Link>
           </li>
           <li className="inline-block py-4">
-            {isLoggedIn? (
+            {isLoggedIn ? (
               <div>
-                <p className="inline-block mr-4" onClick={handleProfileClick}>{user}</p>
+                <p className="inline-block mr-4" onClick={handleProfileClick}>
+                  {user}
+                </p>
                 <button onClick={logout}>Logout</button>
               </div>
             ) : (
-              <button type="button" onClick={handleOpen}>Login/Register</button>
+              <button type="button" onClick={handleOpen}>
+                Login/Register
+              </button>
             )}
+          </li>
+          <li className="inline-block py-4">
+            <button className="theme-toggler" onClick={toggleTheme}>
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
           </li>
         </ul>
       </nav>
 
-      <Model isOpen={open} onClose={handleClose}>
-        <>
-          <div className="login-container">
-            <div className="login-header">
-              <h2>{isLogin? 'Login' : 'Register'}</h2>
+      {open && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+          <div className={`relative w-full max-w-sm p-8 rounded-lg shadow-2xl ${
+                  theme === 'dark' ? 'bg-gray-900 text-slate-100' : 'bg-slate-200'}`}>
+            <button
+              onClick={handleClose}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 text-2xl font-bold"
+            >
+              &times;
+            </button>
+            <div className="text-center mb-6">
+              <h2 className={`text-3xl font-extrabold ${
+                  theme === 'dark' ? 'bg-gray-900 text-white' : ''
+              }`}>
+                {isLogin ? 'Login' : 'Register'}
+              </h2>
+              <p className={`text-sm mt-2 ${
+                  theme === 'dark' ? 'bg-gray-900 text-white' : ''
+                }>`}>
+                {isLogin
+                  ? "Welcome back! Please login to your account."
+                  : "Create your account to get started."}
+              </p>
             </div>
-            <form onSubmit={isLogin? login : register} className="login-form" style={{ display: "flex", flexDirection: "column" }}>
-              <input type="text" value={username} onChange={(event) => setUsername(event.target.value)} className="input-field" placeholder="Username" required />
-              {isLogin? null : <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="input-field" placeholder="Email" required />}
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="input-field" placeholder="Password" required />
-              {error && <p style={{ color: 'red' }}>{error}</p>}
-              <button className="login-button"
-                style={{
-                  background: "#44bb44",
-                  width: 50,
-                  height: 50
-                }}
-              >{isLogin? 'Login' : 'Register'}</button>
-              <p onClick={toggleLogin} style={{ cursor: 'pointer' }}>{isLogin? 'Don\'t have an account? Register' : 'Already have an account? Login'}</p>
+            <form
+              onSubmit={isLogin ? login : register}
+              className="flex flex-col gap-4"
+            >
+              <input
+                type="text"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Username"
+                required
+                className={`w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:outline-none text-gray-700 ${
+                  theme === 'dark' ? 'bg-gray-700 text-white' : ''
+                }`} 
+              />
+              {!isLogin && (
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Email"
+                  required
+                  className={`w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:outline-none text-gray-700 ${
+                    theme === 'dark' ? 'bg-gray-700 text-white' : ''
+                  }`}
+                />
+              )}
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password"
+                required
+                className={`w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:outline-none text-gray-700 ${
+                  theme === 'dark' ? 'bg-gray-700 text-white' : ''
+                }`}
+              />
+              {error && (
+                <p className="text-red-500 text-sm text-center">{error}</p>
+              )}
+              <button
+                type="submit"
+                className="w-full py-3 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+              >
+                {isLogin ? 'Login' : 'Register'}
+              </button>
+              <p
+                onClick={toggleLogin}
+                className="text-center text-blue-500 text-sm cursor-pointer hover:underline"
+              >
+                {isLogin
+                  ? "Don't have an account? Register"
+                  : "Already have an account? Login"}
+              </p>
             </form>
           </div>
-        </>
-      </Model>
+        </div>
+      )}
+
     </>
-  )
-}
+  );
+};
 
 export default Navbar;
